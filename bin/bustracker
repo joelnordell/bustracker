@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# Read PIDFILE from config.json
+BASEDIR=`dirname $0`
+CONFIG=$BASEDIR/../etc/config.json
+if [ ! -e $CONFIG ]; then
+	echo "Error: no config file!"
+	exit 1
+fi
+
+PIDFILE=`grep pidfile $CONFIG | cut -d '"' -f 4`
+if [ "`echo $PIDFILE | cut -c 1`" != "/" ]; then
+        PIDFILE=$BASEDIR/../$PIDFILE
+fi
+
+check_if_running() {
+        if [ -f "$PIDFILE" ]; then
+                true
+        else
+                false
+        fi
+}
+
+case "$1" in
+        "start")
+                if check_if_running; then
+                        echo "Already running"
+                        exit 1
+                fi
+                exec -a foo node -- $BASEDIR/../lib/main.js $*
+        ;;
+        "stop")
+                if ! check_if_running; then
+                        echo "Not running"
+                        exit 1
+                fi
+                kill `cat $PIDFILE`
+                echo "Stopped"
+        ;;
+        "status")
+                if check_if_running; then
+                        echo "Running, with PID `cat $PIDFILE`"
+                else
+                        echo "Not running"
+                fi
+	;;
+	*)
+		exec -a foo node -- $BASEDIR/../lib/main.js $*
+        ;;
+esac
+
